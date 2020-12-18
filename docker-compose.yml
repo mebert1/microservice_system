@@ -1,0 +1,478 @@
+version: '3.1'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  customer-db:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  customer-service:
+    build: .
+    image: efridge-services:latest
+    entrypoint: ["/service", "customer"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: customer-db
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: london 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: customer 
+      RBMQ_CONSUMER_TAG: customer_service
+    ports:
+    - "8080:8080"
+    depends_on: 
+    - customer-db
+    - rabbitmq
+
+  order-db:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  order-service:
+    image: efridge-services:latest
+    entrypoint: ["/service", "order"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: order-db
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: london 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: order 
+      RBMQ_CONSUMER_TAG: order_service
+    ports:
+    - "8081:8080"
+    depends_on: 
+    - customer-service
+    - delegation-service
+    - order-db
+    - rabbitmq
+
+  model-db:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  model-service:
+    image: efridge-services:latest
+    entrypoint: ["/service", "model"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: model-db
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: london 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: model 
+      RBMQ_CONSUMER_TAG: model_service
+    ports:
+    - "8082:8080"
+    depends_on: 
+    - customer-service
+    - model-db
+    - rabbitmq
+
+  delegation-db:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  delegation-service:
+    build: .
+    image: efridge-services:latest
+    entrypoint: ["/service", "delegation"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: delegation-db
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: london 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: delegation 
+      RBMQ_CONSUMER_TAG: delegation_service
+    depends_on: 
+    - delegation-db
+    - factory-service-china
+    - factory-service-usa
+    - rabbitmq
+
+  kpi-db:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+  
+  kpi-service:
+    build: .
+    image: efridge-services:latest
+    entrypoint: ["/service", "kpi"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: kpi-db
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: london 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: kpi 
+      RBMQ_CONSUMER_TAG: kpi_service    
+    ports:
+    - "8083:8080"
+    depends_on: 
+    - kpi-db
+    - factory-service-china
+    - factory-service-usa
+    - rabbitmq
+
+  factory-db-usa:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  factory-service-usa:
+    image: efridge-services:latest
+    entrypoint: ["/service", "factory"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: factory-db-usa
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: usa 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: factory 
+      RBMQ_CONSUMER_TAG: factory_service
+    depends_on:
+    - customer-service
+    - assembly-service-usa
+    - shipping-service-usa
+    - factory-db-usa
+    - rabbitmq
+
+  part-db-usa:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  part-service-usa:
+    image: efridge-services:latest
+    entrypoint: ["/service", "part"]
+    environment:
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: part-db-usa
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: usa 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: part 
+      RBMQ_CONSUMER_TAG: part_service
+    depends_on:
+    - model-service
+    - customer-service
+    - rabbitmq
+
+  assembly-service-usa:
+    image: efridge-services:latest
+    entrypoint: ["/service", "assembly"]
+    environment: 
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: usa 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: assembly 
+      RBMQ_CONSUMER_TAG: assembly_service
+    depends_on:
+    - customer-service
+    - rabbitmq
+
+  shipping-service-usa:
+    image: efridge-services:latest
+    entrypoint: ["/service", "shipping"]
+    environment: 
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: usa 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: shipping 
+      RBMQ_CONSUMER_TAG: shipping_service
+    depends_on:
+    - customer-service
+    - rabbitmq
+
+  factory-db-china:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  factory-service-china:
+    image: efridge-services:latest
+    entrypoint: ["/service", "factory"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: factory-db-china
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: china 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: factory 
+      RBMQ_CONSUMER_TAG: factory_service
+    depends_on: 
+    - customer-service
+    - assembly-service-china
+    - shipping-service-china
+    - factory-db-china
+    - rabbitmq
+
+  part-db-china:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  part-service-china:
+    image: efridge-services:latest
+    entrypoint: ["/service", "part"]
+    environment:
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: part-db-china
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: china 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: part 
+      RBMQ_CONSUMER_TAG: part_service
+    depends_on:
+    - model-service
+    - customer-service
+    - rabbitmq
+
+  assembly-service-china:
+    image: efridge-services:latest
+    entrypoint: ["/service", "assembly"]
+    environment: 
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: china 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: assembly 
+      RBMQ_CONSUMER_TAG: assembly_service
+    depends_on:
+    - customer-service
+    - rabbitmq
+
+  shipping-service-china:
+    image: efridge-services:latest
+    entrypoint: ["/service", "shipping"]
+    environment: 
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: china 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: shipping 
+      RBMQ_CONSUMER_TAG: shipping_service
+    depends_on:
+    - customer-service
+    - rabbitmq
+
+  ticket-db:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  ticket-service:
+    image: efridge-services:latest
+    entrypoint: ["/service", "ticket"]
+    environment: 
+      DB_DRIVER: mongo
+      DB_USER: root 
+      DB_PASSWORD: example 
+      DB_HOST: ticket-db
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: london 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: ticket 
+      RBMQ_CONSUMER_TAG: ticket_service
+    ports:
+    - "8084:8080"
+    depends_on: 
+    - customer-service
+    - support-service-mexico
+    - support-service-india
+    - ticket-db
+
+  support-service-mexico:
+    image: efridge-services:latest
+    entrypoint: ["/service", "support"]
+    environment: 
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: mexico 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: support 
+      RBMQ_CONSUMER_TAG: support_service
+    depends_on: 
+    - customer-service
+
+  support-service-india:
+    image: efridge-services:latest
+    entrypoint: ["/service", "support"]
+    environment: 
+      RBMQ_USER: guest 
+      RBMQ_PASSWORD: guest 
+      RBMQ_URL: rabbitmq:5672 
+      SERVICE_LOCATION: india 
+      RBMQ_EXCHANGE_TYPE: direct 
+      RBMQ_BINDINGKEY: support 
+      RBMQ_CONSUMER_TAG: support_service
+    depends_on: 
+    - customer-service
+    
+  mongo-express-customer:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8091:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: customer-db
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+
+  mongo-express-model:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8092:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: model-db
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  mongo-express-order:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8093:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: order-db
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  mongo-express-delegation:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8099:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: delegation-db
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  mongo-express-ticket:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8094:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: ticket-db
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  mongo-express-factory-china:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8095:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: factory-db-china
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  mongo-express-factory-usa:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8096:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: factory-db-usa
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  mongo-express-part-china:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8097:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: part-db-china
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  mongo-express-part-usa:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8098:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: part-db-china
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
