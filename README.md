@@ -1,3 +1,35 @@
+# Introduction
+
+This project implements a distributed system simulation for a fridge manufactorer.
+
+<ins>Developers:</ins>
+
+- Dennis Appel
+- Marius Ebert
+- Jens Niederreiter
+
+<ins>Architecture:</ins> **Microservices**
+
+<ins>Technologies: </ins>
+
+- Programming language: **Go**
+- Database: **MongoDB**
+- API: **REST**
+- Message broker: **RabbitMQ**
+- Container: **Docker**
+
+
+
+
+
+Language: German
+
+School: University of Applied Sciences Mittelhessen, Gießen, Germany (*Technische Hochschule Mittelhessen*)
+
+
+
+____
+
 # EFridge
 
 **WICHTIG: Zwar ist die Architektur komplett und die services implementiert, jeodch verhindern einige Bugs ein ausführen der Gesamtanwendung. Fixes, die für die Demo nötig sind, werden gegebenenfalls in einem unabhaengigen Branch gemacht und in einem entsprechenden Merge Request aufgefuehrt um diese klar von der Abgabe zur Deadline zur differenzieren.**
